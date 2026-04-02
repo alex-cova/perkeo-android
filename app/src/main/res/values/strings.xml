@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Perkeo</string>
+    <string name="widget_title">Today seed is</string>
+    <string name="widget_description">Perkeo daily seed widget</string>
+    <string name="shortcut_copy_seed_short">Random Seed</string>
+    <string name="shortcut_copy_seed_long">Copy random seed</string>
+    <string name="shortcut_seed_copied">Copied random seed: %1$s</string>
+</resources>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutId="copy_random_seed"
+        android:shortcutShortLabel="@string/shortcut_copy_seed_short"
+        android:shortcutLongLabel="@string/shortcut_copy_seed_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.alexcova.perkeo.MainActivity"
+            android:targetPackage="com.alexcova.perkeo" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+</shortcuts>
