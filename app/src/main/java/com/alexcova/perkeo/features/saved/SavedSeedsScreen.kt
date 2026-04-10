@@ -3,17 +3,19 @@ package com.alexcova.perkeo.features.saved
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -109,17 +111,20 @@ private fun EmptySavedSeeds(onPaste: () -> Unit) {
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "There are no saved seeds yet.",
+            text = "No saved seeds yet.",
             style = MaterialTheme.typography.bodyLarge,
-            color = Color.White,
+            color = PerkeoTextMuted,
         )
-        Spacer(Modifier.height(16.dp))
-        TextButton(onClick = onPaste) {
-            Text(
-                text = "Add seed from clipboard",
-                style = MaterialTheme.typography.bodyLarge,
-                color = PerkeoAccentRed,
-            )
+        Spacer(Modifier.height(20.dp))
+        OutlinedButton(
+            onClick = onPaste,
+            shape = MaterialTheme.shapes.medium,
+            border = BorderStroke(1.dp, PerkeoAccentRed.copy(alpha = 0.6f)),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = PerkeoAccentRed),
+        ) {
+            Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Add from clipboard", style = MaterialTheme.typography.bodyLarge)
         }
         Spacer(Modifier.weight(1f))
     }
@@ -137,25 +142,23 @@ private fun SeedsList(
 
     Column(modifier = Modifier.fillMaxSize().background(PerkeoBackgroundDark)) {
         AnimatedTitle(text = "Saved Seeds")
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(PerkeoRowBackground),
+                OutlinedButton(
+                    onClick = onPaste,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    border = BorderStroke(1.dp, PerkeoAccentRed.copy(alpha = 0.6f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PerkeoAccentRed),
                 ) {
-                    TextButton(
-                        onClick = onPaste,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = "Add seed from clipboard",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = PerkeoAccentRed,
-                        )
-                    }
+                    Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Add seed from clipboard", style = MaterialTheme.typography.bodyLarge)
                 }
-                HorizontalDivider(color = PerkeoBackgroundDark, thickness = 1.dp)
             }
             items(seeds, key = { it.seed }) { item ->
                 var dismissed by remember { mutableStateOf(false) }
@@ -171,15 +174,21 @@ private fun SeedsList(
                     )
                     SwipeToDismissBox(
                         state = dismissState,
+                        modifier = Modifier.clip(MaterialTheme.shapes.medium),
                         backgroundContent = {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(PerkeoAccentRed)
-                                    .padding(end = 16.dp),
+                                    .padding(end = 20.dp),
                                 contentAlignment = Alignment.CenterEnd,
                             ) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(24.dp),
+                                )
                             }
                         },
                         enableDismissFromStartToEnd = false,
@@ -191,7 +200,6 @@ private fun SeedsList(
                         )
                     }
                 }
-                HorizontalDivider(color = PerkeoBackgroundDark, thickness = 1.dp)
             }
         }
     }
@@ -203,30 +211,47 @@ private fun SeedRow(
     dateFormat: DateFormat,
     onClick: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(PerkeoRowBackground)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+    Surface(
+        color = PerkeoSurfaceDark,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
     ) {
-        Text(item.seed, style = MaterialTheme.typography.titleMedium, color = Color.White)
-        item.title?.let { title ->
-            Text(title, style = MaterialTheme.typography.labelMedium, color = Color.White)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                text = dateFormat.format(Date(item.timestamp)),
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White,
-            )
-            item.level?.let { level ->
-                Text(level, style = MaterialTheme.typography.labelSmall, color = Color.White)
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(item.seed, style = MaterialTheme.typography.titleLarge, color = Color.White)
+            item.title?.let { title ->
+                Text(title, style = MaterialTheme.typography.bodyMedium, color = PerkeoTextMuted)
             }
-            item.score?.let { score ->
-                Text("Score: $score", style = MaterialTheme.typography.labelSmall, color = Color.White)
+            Spacer(Modifier.height(2.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                MetaChip(icon = Icons.Default.AccessTime, label = dateFormat.format(Date(item.timestamp)))
+                item.level?.let { level ->
+                    MetaChip(icon = Icons.Default.Flag, label = level)
+                }
+                item.score?.let { score ->
+                    MetaChip(icon = Icons.Default.Star, label = "$score", iconTint = PerkeoAccentRed)
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun MetaChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    iconTint: Color = PerkeoTextMuted,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(12.dp), tint = iconTint)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = PerkeoTextMuted)
     }
 }

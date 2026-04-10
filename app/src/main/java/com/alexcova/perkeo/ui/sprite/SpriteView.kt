@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alexcova.perkeo.domain.engine.*
 import com.alexcova.perkeo.ui.theme.GameFontFamily
+import androidx.core.graphics.createBitmap
 
 @Composable
 fun SpriteView(
@@ -142,7 +143,7 @@ fun SpriteView(
 }
 
 private fun Bitmap.invertColors(): Bitmap {
-    val result = Bitmap.createBitmap(width, height, config ?: Bitmap.Config.ARGB_8888)
+    val result = createBitmap(width, height, config ?: Bitmap.Config.ARGB_8888)
     val canvas = android.graphics.Canvas(result)
     val paint = Paint().apply { colorFilter = PorterDuffColorFilter(0x00FFFFFF, PorterDuff.Mode.XOR) }
     canvas.drawBitmap(this, 0f, 0f, paint)

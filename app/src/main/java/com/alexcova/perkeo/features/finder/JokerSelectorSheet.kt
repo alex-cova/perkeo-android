@@ -22,6 +22,8 @@ import com.alexcova.perkeo.ui.sprite.SpriteView
 import com.alexcova.perkeo.ui.theme.PerkeoAccentRed
 import com.alexcova.perkeo.ui.theme.PerkeoBackgroundDark
 import com.alexcova.perkeo.ui.theme.PerkeoRowBackground
+import com.alexcova.perkeo.ui.theme.PerkeoSurfaceDark
+import com.alexcova.perkeo.ui.theme.PerkeoTextMuted
 import java.util.UUID
 
 @Composable
@@ -37,7 +39,7 @@ fun JokerSelectorSheet(
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight(0.92f)
-            .background(PerkeoRowBackground),
+            .background(PerkeoBackgroundDark),
     ) {
         // Header
         Row(
@@ -73,8 +75,10 @@ fun JokerSelectorSheet(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White,
-                    focusedContainerColor = PerkeoBackgroundDark,
-                    unfocusedContainerColor = PerkeoBackgroundDark,
+                    focusedContainerColor = PerkeoSurfaceDark,
+                    unfocusedContainerColor = PerkeoSurfaceDark,
+                    focusedBorderColor = PerkeoAccentRed,
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.12f),
                 ),
             )
             IconButton(
@@ -144,10 +148,10 @@ private fun ItemSection(
 
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(
-            title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = Color.White,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            title.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = PerkeoTextMuted,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
         )
         LazyVerticalGrid(
             columns = GridCells.Fixed(4),

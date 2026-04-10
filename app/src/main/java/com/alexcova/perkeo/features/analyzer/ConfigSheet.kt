@@ -1,6 +1,12 @@
 package com.alexcova.perkeo.features.analyzer
 
 import android.content.Context
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,9 +22,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.alexcova.perkeo.domain.engine.*
 import com.alexcova.perkeo.ui.sprite.SpriteView
 import com.alexcova.perkeo.ui.theme.*
@@ -30,301 +39,473 @@ fun ConfigSheet(
     viewModel: AnalyzerViewModel,
     context: Context,
 ) {
-    val rowBg = PerkeoRowBackground
-    val sectionBg = PerkeoSurfaceDark
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight(0.92f)
             .background(PerkeoBackgroundDark)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(1.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        // ── Section 1: Seed actions + ante steppers + deck/stake ──
-        ConfigSection(bg = sectionBg) {
-            // Paste seed (only when relevant)
-            ConfigRow(bg = rowBg) {
-                TextButton(onClick = { viewModel.paste(context) }, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.ContentPaste, null, tint = PerkeoAccentRed)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Paste Seed", style = MaterialTheme.typography.bodyLarge, color = Color.White)
-                }
-            }
-            ConfigRow(bg = rowBg) {
-                TextButton(onClick = { viewModel.copy(context) }, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.ContentCopy, null, tint = PerkeoAccentRed)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Copy Seed", style = MaterialTheme.typography.bodyLarge, color = Color.White)
-                }
-            }
-            ConfigRow(bg = rowBg) {
-                TextButton(onClick = { viewModel.storeSeed() }, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.Download, null, tint = PerkeoAccentRed)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Save Seed", style = MaterialTheme.typography.bodyLarge, color = Color.White)
-                }
-            }
+        Spacer(Modifier.height(8.dp))
 
-            // Starting ante stepper
-            ConfigRow(bg = rowBg) {
-                AnteStepperRow(
-                    label = "starting ante: ${state.startingAnte}",
-                    icon = Icons.Default.ArrowForward,
-                    iconTint = PerkeoAccentRed,
-                    onIncrement = {
-                        val next = (state.startingAnte + 1).coerceAtMost(29)
-                        viewModel.setStartingAnte(next)
-                        if (next > state.maxAnte) viewModel.setMaxAnte(next)
-                    },
-                    onDecrement = {
-                        viewModel.setStartingAnte((state.startingAnte - 1).coerceAtLeast(1))
-                    },
-                )
-            }
-
-            // Max ante stepper
-            ConfigRow(bg = rowBg) {
-                AnteStepperRow(
-                    label = "max ante: ${state.maxAnte}",
-                    icon = Icons.Default.Warning,
-                    iconTint = Color(0xFFFFD600),
-                    onIncrement = { viewModel.setMaxAnte((state.maxAnte + 1).coerceAtMost(30)) },
-                    onDecrement = {
-                        val next = (state.maxAnte - 1).coerceAtLeast(1)
-                        viewModel.setMaxAnte(next)
-                        if (next < state.startingAnte) viewModel.setStartingAnte(next.coerceAtLeast(1))
-                    },
-                    subtitle = "Deeper ante search is slower!",
-                )
-            }
-
-            // Showman toggle
-            ConfigRow(bg = rowBg) {
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    Text("Showman", style = MaterialTheme.typography.bodyLarge, color = Color.White,
-                        modifier = Modifier.weight(1f))
-                    Switch(checked = state.showman, onCheckedChange = viewModel::setShowman,
-                        colors = SwitchDefaults.colors(checkedThumbColor = PerkeoAccentRed,
-                            checkedTrackColor = PerkeoAccentRed.copy(alpha = 0.5f)))
-                }
-            }
-
-            // Deck picker
-            ConfigRow(bg = rowBg) { DeckPicker(state = state, onDeckSelected = viewModel::setDeck) }
-
-            // Stake picker
-            ConfigRow(bg = rowBg) { StakePicker(state = state, onStakeSelected = viewModel::setStake) }
+        // ── Quick actions ──
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            QuickActionButton(
+                icon = Icons.Default.ContentPaste,
+                label = "Paste",
+                onClick = { viewModel.paste(context) },
+                modifier = Modifier.weight(1f),
+            )
+            QuickActionButton(
+                icon = Icons.Default.ContentCopy,
+                label = "Copy",
+                onClick = { viewModel.copy(context) },
+                modifier = Modifier.weight(1f),
+            )
+            QuickActionButton(
+                icon = Icons.Default.Download,
+                label = "Save",
+                onClick = { viewModel.storeSeed() },
+                modifier = Modifier.weight(1f),
+            )
         }
 
-        // ── Section 2: Vouchers ──
-        ConfigSection(bg = sectionBg) {
-            ConfigRow(bg = rowBg) {
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    Text("Auto buy vouchers", style = MaterialTheme.typography.bodyLarge, color = Color.White,
-                        modifier = Modifier.weight(1f))
-                    Switch(checked = state.autoBuyVoucher, onCheckedChange = viewModel::setAutoBuyVoucher,
-                        colors = SwitchDefaults.colors(checkedThumbColor = PerkeoAccentRed,
-                            checkedTrackColor = PerkeoAccentRed.copy(alpha = 0.5f)))
-                }
-            }
-            if (!state.autoBuyVoucher) {
-                ConfigRow(bg = rowBg) {
-                    Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Default.CheckBox, null, tint = Color.Gray)
-                        Text("Select the vouchers you have purchased",
-                            style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
-                    }
-                }
-                JokerDisclosureGroup(
-                    title = "Vouchers",
-                    items = Voucher.allCases(),
-                    isSelected = { viewModel.isSelected(it) },
-                    onToggle = { viewModel.toggleDisabledItem(it) },
-                    invertOpacity = true,
-                    bg = rowBg,
-                )
-            }
+        // ── Run setup ──
+        SectionCard {
+            StepperField(
+                icon = Icons.Default.PlayArrow,
+                iconTint = PerkeoAccentRed,
+                label = "Starting ante: ${state.startingAnte}",
+                onDecrement = {
+                    viewModel.setStartingAnte((state.startingAnte - 1).coerceAtLeast(1))
+                },
+                onIncrement = {
+                    val next = (state.startingAnte + 1).coerceAtMost(29)
+                    viewModel.setStartingAnte(next)
+                    if (next > state.maxAnte) viewModel.setMaxAnte(next)
+                },
+            )
+            CardDivider()
+            StepperField(
+                icon = Icons.Default.Flag,
+                iconTint = PerkeoTextMuted,
+                label = "Max ante: ${state.maxAnte}",
+                subtitle = "Deeper ante search is slower!",
+                onDecrement = {
+                    val next = (state.maxAnte - 1).coerceAtLeast(1)
+                    viewModel.setMaxAnte(next)
+                    if (next < state.startingAnte) viewModel.setStartingAnte(next.coerceAtLeast(1))
+                },
+                onIncrement = {
+                    viewModel.setMaxAnte((state.maxAnte + 1).coerceAtMost(30))
+                },
+            )
+            CardDivider()
+            ToggleRow(
+                title = "Showman",
+                checked = state.showman,
+                onCheckedChange = viewModel::setShowman,
+            )
+            CardDivider()
+            SpriteDropdown(
+                label = "Deck",
+                selected = state.deck,
+                options = Deck.allCases(),
+                spriteSize = DpSize(24.dp, 32.dp),
+                menuSpriteSize = DpSize(35.dp, 47.dp),
+                onSelected = viewModel::setDeck,
+            )
+            CardDivider()
+            SpriteDropdown(
+                label = "Stake",
+                selected = state.stake,
+                options = Stake.entries,
+                spriteSize = DpSize(24.dp, 24.dp),
+                menuSpriteSize = DpSize(29.dp, 29.dp),
+                onSelected = viewModel::setStake,
+            )
         }
 
-        // ── Section 3: Disabled jokers ──
-        ConfigSection(bg = sectionBg) {
-            ConfigRow(bg = rowBg) {
-                Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.Cancel, null, tint = Color.Gray)
-                    Text("Select the jokers you have already purchased",
-                        style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
-                }
-            }
-            JokerDisclosureGroup(title = "Legendary Jokers", items = LegendaryJoker.allCases(),
-                isSelected = { viewModel.isSelected(it) }, onToggle = { viewModel.toggleDisabledItem(it) }, bg = rowBg)
-            JokerDisclosureGroup(title = "Rare Jokers", items = RareJoker.allCases(),
-                isSelected = { viewModel.isSelected(it) }, onToggle = { viewModel.toggleDisabledItem(it) }, bg = rowBg)
-            JokerDisclosureGroup(title = "Uncommon Jokers", items = UnCommonJoker.allCases(),
-                isSelected = { viewModel.isSelected(it) }, onToggle = { viewModel.toggleDisabledItem(it) }, bg = rowBg)
-            JokerDisclosureGroup(title = "Common Jokers", items = CommonJoker.allCases(),
-                isSelected = { viewModel.isSelected(it) }, onToggle = { viewModel.toggleDisabledItem(it) }, bg = rowBg)
+        // ── Vouchers ──
+        SectionCard {
+            ToggleRow(
+                title = "Auto buy vouchers",
+                checked = state.autoBuyVoucher,
+                onCheckedChange = viewModel::setAutoBuyVoucher,
+            )
+        }
+        if (!state.autoBuyVoucher) {
+            SectionHeader(
+                title = "Vouchers",
+                subtitle = "Select the vouchers you have purchased",
+            )
+            DisclosureGroup(
+                title = "Vouchers",
+                items = Voucher.allCases(),
+                isSelected = { viewModel.isSelected(it) },
+                onToggle = { viewModel.toggleDisabledItem(it) },
+                invertOpacity = true,
+            )
         }
 
-        Spacer(Modifier.height(32.dp))
+        // ── Owned jokers ──
+        SectionHeader(
+            title = "Owned jokers",
+            subtitle = "Select the jokers you have already purchased",
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            DisclosureGroup(
+                title = "Legendary Jokers",
+                items = LegendaryJoker.allCases(),
+                isSelected = { viewModel.isSelected(it) },
+                onToggle = { viewModel.toggleDisabledItem(it) },
+            )
+            DisclosureGroup(
+                title = "Rare Jokers",
+                items = RareJoker.allCases(),
+                isSelected = { viewModel.isSelected(it) },
+                onToggle = { viewModel.toggleDisabledItem(it) },
+            )
+            DisclosureGroup(
+                title = "Uncommon Jokers",
+                items = UnCommonJoker.allCases(),
+                isSelected = { viewModel.isSelected(it) },
+                onToggle = { viewModel.toggleDisabledItem(it) },
+            )
+            DisclosureGroup(
+                title = "Common Jokers",
+                items = CommonJoker.allCases(),
+                isSelected = { viewModel.isSelected(it) },
+                onToggle = { viewModel.toggleDisabledItem(it) },
+            )
+        }
+
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+// ── Layout primitives ──────────────────────────────────────────────────────────
+
+@Composable
+private fun SectionCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Surface(
+        color = PerkeoSurfaceDark,
+        shape = MaterialTheme.shapes.medium,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(content = content)
     }
 }
 
 @Composable
-private fun ConfigSection(bg: Color, content: @Composable ColumnScope.() -> Unit) {
+private fun SectionHeader(title: String, subtitle: String? = null) {
     Column(
-        modifier = Modifier.fillMaxWidth().background(bg).padding(vertical = 1.dp),
-        verticalArrangement = Arrangement.spacedBy(1.dp),
-        content = content,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 4.dp, end = 4.dp, bottom = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(
+            text = title.uppercase(),
+            style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.sp),
+            color = PerkeoTextMuted,
+        )
+        if (subtitle != null) {
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = PerkeoTextMuted.copy(alpha = 0.85f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CardDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        thickness = 1.dp,
+        color = Color.White.copy(alpha = 0.06f),
     )
 }
 
-@Composable
-private fun ConfigRow(bg: Color, content: @Composable () -> Unit) {
-    Box(modifier = Modifier.fillMaxWidth().background(bg), content = { content() })
-}
+// ── Row components ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun AnteStepperRow(
+private fun QuickActionButton(
+    icon: ImageVector,
     label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    iconTint: Color,
-    onIncrement: () -> Unit,
-    onDecrement: () -> Unit,
-    subtitle: String? = null,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, tint = iconTint)
-        Spacer(Modifier.width(8.dp))
+    FilledTonalButton(
+        onClick = onClick,
+        modifier = modifier.height(64.dp),
+        shape = MaterialTheme.shapes.small,
+        colors = ButtonDefaults.filledTonalButtonColors(
+            containerColor = PerkeoSurfaceDark,
+            contentColor = Color.White,
+        ),
+        contentPadding = PaddingValues(vertical = 8.dp, horizontal = 4.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+        ) {
+            Icon(icon, contentDescription = null, tint = PerkeoAccentRed, modifier = Modifier.size(20.dp))
+            Text(label, style = MaterialTheme.typography.labelMedium)
+        }
+    }
+}
+
+@Composable
+private fun StepperField(
+    icon: ImageVector,
+    iconTint: Color,
+    label: String,
+    subtitle: String? = null,
+    onDecrement: () -> Unit,
+    onIncrement: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = iconTint)
+        Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodyLarge, color = Color.White, fontWeight = FontWeight.Bold)
-            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.labelMedium, color = Color.White)
-        }
-        Row {
-            IconButton(onClick = onDecrement) { Icon(Icons.Default.Remove, null, tint = Color.White) }
-            IconButton(onClick = onIncrement) { Icon(Icons.Default.Add, null, tint = Color.White) }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DeckPicker(state: AnalyzerUiState, onDeckSelected: (Deck) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it },
-        modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-        OutlinedTextField(
-            value = state.deck.rawValue,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Deck", color = Color.White) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(),
-            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White, focusedContainerColor = PerkeoSurfaceDark,
-                unfocusedContainerColor = PerkeoSurfaceDark),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false },
-            modifier = Modifier.background(PerkeoSurfaceDark)) {
-            Deck.allCases().forEach { deck ->
-                DropdownMenuItem(
-                    text = {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(deck.rawValue, color = Color.White, style = MaterialTheme.typography.bodyLarge)
-                            SpriteView(item = deck, showLabel = false, modifier = Modifier.size(35.dp, 47.dp))
-                        }
-                    },
-                    onClick = { onDeckSelected(deck); expanded = false },
+            Text(label, style = MaterialTheme.typography.bodyLarge, color = Color.White)
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = PerkeoTextMuted,
+                    modifier = Modifier.padding(top = 2.dp),
                 )
             }
         }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun StakePicker(state: AnalyzerUiState, onStakeSelected: (Stake) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it },
-        modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-        OutlinedTextField(
-            value = state.stake.rawValue,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Stake", color = Color.White) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(),
-            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White, focusedContainerColor = PerkeoSurfaceDark,
-                unfocusedContainerColor = PerkeoSurfaceDark),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false },
-            modifier = Modifier.background(PerkeoSurfaceDark)) {
-            Stake.entries.forEach { stake ->
-                DropdownMenuItem(
-                    text = {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SpriteView(item = stake, showLabel = false, modifier = Modifier.size(29.dp, 29.dp))
-                            Text(stake.rawValue, color = Color.White, style = MaterialTheme.typography.bodyLarge)
-                        }
-                    },
-                    onClick = { onStakeSelected(stake); expanded = false },
-                )
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            FilledIconButton(
+                onClick = onDecrement,
+                modifier = Modifier.size(36.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = PerkeoRowBackground,
+                    contentColor = Color.White,
+                ),
+            ) {
+                Icon(Icons.Default.Remove, contentDescription = null, modifier = Modifier.size(18.dp))
+            }
+            FilledIconButton(
+                onClick = onIncrement,
+                modifier = Modifier.size(36.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = PerkeoRowBackground,
+                    contentColor = Color.White,
+                ),
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             }
         }
     }
 }
 
 @Composable
-private fun <T : Item> JokerDisclosureGroup(
+private fun ToggleRow(
+    title: String,
+    subtitle: String? = null,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (subtitle != null) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge, color = Color.White)
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = PerkeoTextMuted,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+        } else {
+            Text(
+                title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.White,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = PerkeoAccentRed,
+                checkedTrackColor = PerkeoAccentRed.copy(alpha = 0.5f),
+            ),
+        )
+    }
+}
+
+// ── Sprite dropdown ────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun perkeoFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = Color.White,
+    unfocusedTextColor = Color.White,
+    focusedContainerColor = PerkeoSurfaceDark,
+    unfocusedContainerColor = PerkeoSurfaceDark,
+    focusedBorderColor = PerkeoAccentRed,
+    unfocusedBorderColor = Color.White.copy(alpha = 0.12f),
+    focusedLabelColor = PerkeoAccentRed,
+    unfocusedLabelColor = PerkeoTextMuted,
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T : Item> SpriteDropdown(
+    label: String,
+    selected: T,
+    options: List<T>,
+    spriteSize: DpSize,
+    menuSpriteSize: DpSize,
+    onSelected: (T) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+    ) {
+        OutlinedTextField(
+            value = selected.rawValue,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            leadingIcon = {
+                Box(modifier = Modifier.padding(start = 8.dp)) {
+                    SpriteView(
+                        item = selected,
+                        showLabel = false,
+                        modifier = Modifier.size(spriteSize.width, spriteSize.height),
+                    )
+                }
+            },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(),
+            colors = perkeoFieldColors(),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(PerkeoSurfaceDark),
+        ) {
+            options.forEach { item ->
+                DropdownMenuItem(
+                    text = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            SpriteView(
+                                item = item,
+                                showLabel = false,
+                                modifier = Modifier.size(menuSpriteSize.width, menuSpriteSize.height),
+                            )
+                            Text(item.rawValue, color = Color.White, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    },
+                    onClick = { onSelected(item); expanded = false },
+                )
+            }
+        }
+    }
+}
+
+// ── Disclosure group ───────────────────────────────────────────────────────────
+
+@Composable
+private fun <T : Item> DisclosureGroup(
     title: String,
     items: List<T>,
     isSelected: (T) -> Boolean,
     onToggle: (T) -> Unit,
     invertOpacity: Boolean = false,
-    bg: Color,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    ConfigRow(bg = bg) {
-        Column {
-            Row(modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                Text(title, style = MaterialTheme.typography.bodyLarge, color = Color.White,
-                    modifier = Modifier.weight(1f))
-                Icon(
-                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    null, tint = PerkeoAccentRed,
-                )
-            }
-            if (expanded) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 600.dp).padding(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    items(items, key = { it.rawValue }) { item ->
-                        val selected = isSelected(item)
-                        val opacity = if (invertOpacity) {
-                            if (selected) 1.0f else 0.3f
-                        } else {
-                            if (selected) 0.3f else 1.0f
-                        }
-                        Box(modifier = Modifier.clickable { onToggle(item) }.alpha(opacity)) {
-                            SpriteView(
-                                item = item,
-                                showLabel = false,
-                                modifier = Modifier.size(71.dp, 95.dp),
-                            )
-                        }
+    val chevronAngle by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        label = "chevron",
+    )
+    SectionCard {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = "${items.count(isSelected)}/${items.size}",
+                style = MaterialTheme.typography.labelMedium,
+                color = PerkeoTextMuted,
+                modifier = Modifier.padding(end = 8.dp),
+            )
+            Icon(
+                imageVector = Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = PerkeoAccentRed,
+                modifier = Modifier.rotate(chevronAngle),
+            )
+        }
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut(),
+        ) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(4),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 600.dp)
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                items(items, key = { it.rawValue }) { item ->
+                    val selected = isSelected(item)
+                    val opacity = if (invertOpacity) {
+                        if (selected) 1.0f else 0.3f
+                    } else {
+                        if (selected) 0.3f else 1.0f
+                    }
+                    Box(modifier = Modifier.clickable { onToggle(item) }.alpha(opacity)) {
+                        SpriteView(
+                            item = item,
+                            showLabel = false,
+                            modifier = Modifier.size(71.dp, 95.dp),
+                        )
                     }
                 }
             }
